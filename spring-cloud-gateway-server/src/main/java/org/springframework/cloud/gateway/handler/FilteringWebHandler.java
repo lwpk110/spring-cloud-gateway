@@ -71,13 +71,23 @@ public class FilteringWebHandler implements WebHandler {
 	 * this.combinedFiltersForRoute.clear();
 	 */
 
+	/**
+	 * 二、
+	 *
+	 *  获取合适的handler 后， 请求在这里进入  {@link RoutePredicateHandlerMapping#getHandlerInternal(ServerWebExchange)}
+	 * <p>
+	 *     <ol>路由过滤器-局部</ol>
+	 *     <ol>全局过滤器-全局</ol>
+	 * </p>
+	 *
+	 */
 	@Override
 	public Mono<Void> handle(ServerWebExchange exchange) {
-		Route route = exchange.getRequiredAttribute(GATEWAY_ROUTE_ATTR);
+		Route route = exchange.getRequiredAttribute(GATEWAY_ROUTE_ATTR);  // 路由过滤器
 		List<GatewayFilter> gatewayFilters = route.getFilters();
 
-		List<GatewayFilter> combined = new ArrayList<>(this.globalFilters);
-		combined.addAll(gatewayFilters);
+		List<GatewayFilter> combined = new ArrayList<>(this.globalFilters); //全局过滤器
+		combined.addAll(gatewayFilters); //合并
 		// TODO: needed or cached?
 		AnnotationAwareOrderComparator.sort(combined);
 

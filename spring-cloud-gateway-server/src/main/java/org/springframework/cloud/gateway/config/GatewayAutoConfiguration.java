@@ -26,6 +26,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.cloud.gateway.event.EnableBodyCachingEvent;
 import reactor.core.publisher.Flux;
 import reactor.netty.http.Http11SslContextSpec;
 import reactor.netty.http.Http2SslContextSpec;
@@ -195,23 +196,40 @@ public class GatewayAutoConfiguration {
 		return new StringToZonedDateTimeConverter();
 	}
 
+	/**
+	 * route locator 构建工具类
+	 */
 	@Bean
 	public RouteLocatorBuilder routeLocatorBuilder(ConfigurableApplicationContext context) {
 		return new RouteLocatorBuilder(context);
 	}
 
+
+	/**
+	 * [RouteDefinitionLocator]
+	 * 从 yml 获取  路由配置
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public PropertiesRouteDefinitionLocator propertiesRouteDefinitionLocator(GatewayProperties properties) {
 		return new PropertiesRouteDefinitionLocator(properties);
 	}
 
+	/**
+	 * [RouteDefinitionLocator]
+	 * 从内存获取 路由配置
+	 */
 	@Bean
 	@ConditionalOnMissingBean(RouteDefinitionRepository.class)
 	public InMemoryRouteDefinitionRepository inMemoryRouteDefinitionRepository() {
 		return new InMemoryRouteDefinitionRepository();
 	}
 
+	/**
+	 *
+	 * [RouteDefinitionLocator]
+	 * 所有 路由定义聚合bean
+	 */
 	@Bean
 	@Primary
 	public RouteDefinitionLocator routeDefinitionLocator(List<RouteDefinitionLocator> routeDefinitionLocators) {
@@ -225,6 +243,10 @@ public class GatewayAutoConfiguration {
 		return new ConfigurationService(beanFactory, conversionService, validator);
 	}
 
+	/**
+	 * 路由加载bean
+	 *
+	 */
 	@Bean
 	public RouteLocator routeDefinitionRouteLocator(GatewayProperties properties,
 			List<GatewayFilterFactory> gatewayFilters, List<RoutePredicateFactory> predicates,
@@ -233,6 +255,12 @@ public class GatewayAutoConfiguration {
 				configurationService);
 	}
 
+	/**
+	 * 缓存路由加载bean
+	 *
+	 * @see #routeDefinitionRouteLocator(GatewayProperties, List, List, RouteDefinitionLocator, ConfigurationService)
+	 *
+	 */
 	@Bean
 	@Primary
 	@ConditionalOnMissingBean(name = "cachedCompositeRouteLocator")
@@ -241,22 +269,34 @@ public class GatewayAutoConfiguration {
 		return new CachingRouteLocator(new CompositeRouteLocator(Flux.fromIterable(routeLocators)));
 	}
 
+	/**
+	 * 路由刷新监听器，当路由刷新时，告知 发现中心
+	 */
 	@Bean
 	@ConditionalOnClass(name = "org.springframework.cloud.client.discovery.event.HeartbeatMonitor")
 	public RouteRefreshListener routeRefreshListener(ApplicationEventPublisher publisher) {
 		return new RouteRefreshListener(publisher);
 	}
 
+	/**
+	 * 将 ServerWebExchange 的路由包含的filter 和全局filter 合并
+	 */
 	@Bean
 	public FilteringWebHandler filteringWebHandler(List<GlobalFilter> globalFilters) {
 		return new FilteringWebHandler(globalFilters);
 	}
 
+	/**
+	 * 跨域配置
+	 */
 	@Bean
 	public GlobalCorsProperties globalCorsProperties() {
 		return new GlobalCorsProperties();
 	}
 
+	/**
+	 * 路由断言处理bean
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public RoutePredicateHandlerMapping routePredicateHandlerMapping(FilteringWebHandler webHandler,
@@ -264,6 +304,11 @@ public class GatewayAutoConfiguration {
 		return new RoutePredicateHandlerMapping(webHandler, routeLocator, globalCorsProperties, environment);
 	}
 
+	/**
+	 * gateway 自动属性装配配置类
+	 *
+	 * <p>前缀： spring.cloud.gateway</p>
+	 */
 	@Bean
 	public GatewayProperties gatewayProperties() {
 		return new GatewayProperties();
@@ -271,11 +316,21 @@ public class GatewayAutoConfiguration {
 
 	// ConfigurationProperty beans
 
+	/**
+	 * 关于 安全 header 的属性配置类
+	 * <p>
+	 *     前缀： spring.cloud.gateway.filter.secure-headers
+	 * </p>
+	 */
 	@Bean
 	public SecureHeadersProperties secureHeadersProperties() {
 		return new SecureHeadersProperties();
 	}
 
+	/**
+	 * "Forwarded" header 过滤器， 字符串列表，host， proto 都转为 “Forwarded” 头
+	 *
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "spring.cloud.gateway.forwarded.enabled", matchIfMissing = true)
 	public ForwardedHeadersFilter forwardedHeadersFilter() {
@@ -284,29 +339,51 @@ public class GatewayAutoConfiguration {
 
 	// HttpHeaderFilter beans
 
+	/**
+	 * 移除指定 headers。
+	 *
+	 * <p>前缀 "spring.cloud.gateway.filter.remove-hop-by-hop"</p>
+	 *
+	 */
 	@Bean
 	public RemoveHopByHopHeadersFilter removeHopByHopHeadersFilter() {
 		return new RemoveHopByHopHeadersFilter();
 	}
 
+	/**
+	 *
+	 * 更具现有头信息 构建一个 "X-Forwarded-*" header。
+	 *
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "spring.cloud.gateway.x-forwarded.enabled", matchIfMissing = true)
 	public XForwardedHeadersFilter xForwardedHeadersFilter() {
 		return new XForwardedHeadersFilter();
 	}
 
+	/**
+	 * 构建一个  "te"="trailers" request 的 header
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "server.http2.enabled", matchIfMissing = true)
 	public GRPCRequestHeadersFilter gRPCRequestHeadersFilter() {
 		return new GRPCRequestHeadersFilter();
 	}
 
+	/**
+	 * 构建一个  "te"="trailers" response 的 header
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "server.http2.enabled", matchIfMissing = true)
 	public GRPCResponseHeadersFilter gRPCResponseHeadersFilter() {
 		return new GRPCResponseHeadersFilter();
 	}
 
+	/**
+	 * 分块传输 ，当 transfer-Encoding:chunked 标识是一个不确定长度的内容，那么content-length 是没有意义的。
+	 * 因此在 header 中 当出现 chunked 传输时，将 “content-length” header 移除
+	 *
+	 */
 	@Bean
 	public TransferEncodingNormalizationHeadersFilter transferEncodingNormalizationHeadersFilter() {
 		return new TransferEncodingNormalizationHeadersFilter();
@@ -314,6 +391,11 @@ public class GatewayAutoConfiguration {
 
 	// GlobalFilter beans
 
+	 /**
+	 * 缓存 body 过滤器，一般通过 事件驱动 {@link EnableBodyCachingEvent}.
+	  * 常见如重试 {@link RetryGatewayFilterFactory}
+	 *
+	 */
 	@Bean
 	@ConditionalOnEnabledGlobalFilter
 	public AdaptCachedBodyGlobalFilter adaptCachedBodyGlobalFilter() {
@@ -365,6 +447,7 @@ public class GatewayAutoConfiguration {
 	}
 
 	// Predicate Factory beans
+	// 内置断言工厂beans
 
 	@Bean
 	@ConditionalOnEnabledPredicate
@@ -446,6 +529,7 @@ public class GatewayAutoConfiguration {
 	}
 
 	// GatewayFilter Factory beans
+	// 内置 网关过滤器 Beans
 
 	@Bean
 	@ConditionalOnEnabledFilter

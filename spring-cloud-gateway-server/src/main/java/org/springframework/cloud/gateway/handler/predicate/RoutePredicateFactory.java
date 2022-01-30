@@ -40,10 +40,10 @@ public interface RoutePredicateFactory<C> extends ShortcutConfigurable, Configur
 
 	// useful for javadsl
 	default Predicate<ServerWebExchange> apply(Consumer<C> consumer) {
-		C config = newConfig();
-		consumer.accept(config);
-		beforeApply(config);
-		return apply(config);
+		C config = newConfig();  // 实例化一个config 对象
+		consumer.accept(config); // 消费 config
+		beforeApply(config); // appley 之前
+		return apply(config);  // custom apply
 	}
 
 	default AsyncPredicate<ServerWebExchange> applyAsync(Consumer<C> consumer) {
@@ -65,6 +65,9 @@ public interface RoutePredicateFactory<C> extends ShortcutConfigurable, Configur
 	default void beforeApply(C config) {
 	}
 
+	/**
+	 * custom 实现apply
+	 */
 	Predicate<ServerWebExchange> apply(C config);
 
 	default AsyncPredicate<ServerWebExchange> applyAsync(C config) {

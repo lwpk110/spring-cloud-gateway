@@ -56,7 +56,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	private final RouteDefinitionLocator routeDefinitionLocator;
+	private final RouteDefinitionLocator routeDefinitionLocator; // 注入的是聚合 routeDefinitionLocator
 
 	private final ConfigurationService configurationService;
 
@@ -65,6 +65,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator {
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
 
 	private final GatewayProperties gatewayProperties;
+
 
 	public RouteDefinitionRouteLocator(RouteDefinitionLocator routeDefinitionLocator,
 			List<RoutePredicateFactory> predicates, List<GatewayFilterFactory> gatewayFilterFactories,
@@ -90,10 +91,17 @@ public class RouteDefinitionRouteLocator implements RouteLocator {
 		});
 	}
 
+	/**
+	 *
+	 *将注入进来的 路由定义 配置信息转化为 路由。此处为
+	 * {@link org.springframework.cloud.gateway.config.GatewayAutoConfiguration#routeDefinitionLocator}
+	 */
 	@Override
 	public Flux<Route> getRoutes() {
+
 		Flux<Route> routes = this.routeDefinitionLocator.getRouteDefinitions().map(this::convertToRoute);
 
+		//如果路由配置异常将忽略并警告
 		if (!gatewayProperties.isFailOnRouteDefinitionError()) {
 			// instead of letting error bubble up, continue
 			routes = routes.onErrorContinue((error, obj) -> {
@@ -112,6 +120,9 @@ public class RouteDefinitionRouteLocator implements RouteLocator {
 		});
 	}
 
+	/**
+	 * 根据 RouteDefinition 配置将其转化为 route 对象
+	 */
 	private Route convertToRoute(RouteDefinition routeDefinition) {
 		AsyncPredicate<ServerWebExchange> predicate = combinePredicates(routeDefinition);
 		List<GatewayFilter> gatewayFilters = getFilters(routeDefinition);

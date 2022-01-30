@@ -44,7 +44,7 @@ public class RemoveHopByHopHeadersFilter implements HttpHeadersFilter, Ordered {
 
 	private int order = Ordered.LOWEST_PRECEDENCE;
 
-	private Set<String> headers = HEADERS_REMOVED_ON_REQUEST;
+	private Set<String> headers = HEADERS_REMOVED_ON_REQUEST;  // 对应前缀配置类
 
 	public Set<String> getHeaders() {
 		return headers;

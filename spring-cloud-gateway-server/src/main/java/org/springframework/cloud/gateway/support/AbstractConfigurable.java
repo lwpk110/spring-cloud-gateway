@@ -19,6 +19,15 @@ package org.springframework.cloud.gateway.support;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.style.ToStringCreator;
 
+/**
+ *
+ * 配置支持抽象类
+ *
+ * <p>根据 配置 class 生成 配置 对象</p>
+ *
+ *
+ * @param <C>
+ */
 public abstract class AbstractConfigurable<C> implements Configurable<C> {
 
 	private Class<C> configClass;

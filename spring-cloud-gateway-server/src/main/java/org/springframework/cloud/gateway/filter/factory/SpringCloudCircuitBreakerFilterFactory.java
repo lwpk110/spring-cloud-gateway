@@ -49,6 +49,10 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.r
 
 /**
  * @author Ryan Baxter
+ *
+ * 断路器支持
+ *
+ *
  */
 public abstract class SpringCloudCircuitBreakerFilterFactory
 		extends AbstractGatewayFilterFactory<SpringCloudCircuitBreakerFilterFactory.Config> {

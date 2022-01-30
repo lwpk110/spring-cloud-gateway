@@ -73,9 +73,20 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 		return environment.getProperty(prefix + "port", Integer.class);
 	}
 
+	/**
+	 * 一 、 gateway 请求入口 - 获取合适的handler  {@link #webHandler},{@link FilteringWebHandler}
+	 *
+	 *
+	 * <ol>
+	 *    <li>将路由中的 符合当前 exchange请求路由 筛选出来选择第一个路由；</li>
+	 *    <li>将当前路由放入 “gatewayRout” 属性，供后面 filter handler 使用</li>
+	 * </ol>
+	 *
+	 */
 	@Override
 	protected Mono<?> getHandlerInternal(ServerWebExchange exchange) {
 		// don't handle requests on management port if set and different than server port
+		//	如果设置且与服务器端口不同，则不处理管理端口上的请求
 		if (this.managementPortType == DIFFERENT && this.managementPort != null
 				&& exchange.getRequest().getURI().getPort() == this.managementPort) {
 			return Mono.empty();
@@ -90,7 +101,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 						logger.debug("Mapping [" + getExchangeDesc(exchange) + "] to " + r);
 					}
 
-					exchange.getAttributes().put(GATEWAY_ROUTE_ATTR, r);
+					exchange.getAttributes().put(GATEWAY_ROUTE_ATTR, r); // 将当前路由放入 gatewayRoute属性， 可在 过滤器中使用
 					return Mono.just(webHandler);
 				}).switchIfEmpty(Mono.empty().then(Mono.fromRunnable(() -> {
 					exchange.getAttributes().remove(GATEWAY_PREDICATE_ROUTE_ATTR);
@@ -119,12 +130,16 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 		return out.toString();
 	}
 
+
+	/**
+	 * 将路由中的 符合当前 exchange请求路由 筛选出来选择第一个路由；
+	 */
 	protected Mono<Route> lookupRoute(ServerWebExchange exchange) {
 		return this.routeLocator.getRoutes()
 				// individually filter routes so that filterWhen error delaying is not a
 				// problem
 				.concatMap(route -> Mono.just(route).filterWhen(r -> {
-					// add the current route we are testing
+					// add the current route we are testing  如果当前路由符合predicate 的路由筛选出来
 					exchange.getAttributes().put(GATEWAY_PREDICATE_ROUTE_ATTR, r.getId());
 					return r.getPredicate().apply(exchange);
 				})
@@ -135,7 +150,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 				// .defaultIfEmpty() put a static Route not found
 				// or .switchIfEmpty()
 				// .switchIfEmpty(Mono.<Route>empty().log("noroute"))
-				.next()
+				.next() // 选择第一个
 				// TODO: error handling
 				.map(route -> {
 					if (logger.isDebugEnabled()) {

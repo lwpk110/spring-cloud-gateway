@@ -45,6 +45,37 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.t
 
 /**
  * Predicates that can be applied to a URI route.
+ *
+ * 用于支持流式api
+ * <pre>
+ *  /@Bean
+ * public RouteLocator customRouteLocator(RouteLocatorBuilder builder, ThrottleGatewayFilterFactory throttle) {
+ *     return builder.routes()
+ *             .route(r -> r.host("**.abc.org").and().path("/image/png")
+ *                 .filters(f ->
+ *                         f.addResponseHeader("X-TestHeader", "foobar"))
+ *                 .uri("http://httpbin.org:80")
+ *             )
+ *             .route(r -> r.path("/image/webp")
+ *                 .filters(f ->
+ *                         f.addResponseHeader("X-AnotherHeader", "baz"))
+ *                 .uri("http://httpbin.org:80")
+ *                 .metadata("key", "value")
+ *             )
+ *             .route(r -> r.order(-1)
+ *                 .host("**.throttle.org").and().path("/get")
+ *                 .filters(f -> f.filter(throttle.apply(1,
+ *                         1,
+ *                         10,
+ *                         TimeUnit.SECONDS)))
+ *                 .uri("http://httpbin.org:80")
+ *                 .metadata("key", "value")
+ *             )
+ *             .build();
+ * }
+ *
+ * </pre>
+ *
  */
 public class PredicateSpec extends UriSpec {
 

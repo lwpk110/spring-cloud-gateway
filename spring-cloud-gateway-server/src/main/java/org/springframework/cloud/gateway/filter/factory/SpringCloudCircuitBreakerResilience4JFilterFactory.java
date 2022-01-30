@@ -28,6 +28,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * @author Ryan Baxter
+ *
+ * 对 Resilience4J 断路器 开箱即用
+ *
+ *
  */
 public class SpringCloudCircuitBreakerResilience4JFilterFactory extends SpringCloudCircuitBreakerFilterFactory {
 
